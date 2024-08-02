@@ -15,7 +15,7 @@ PASSWORD = os.getenv("PASSWORD")
 # Fixed API key (replace with your actual API key)
 FIXED_API_KEY = os.getenv("OPENAI_API_KEY")
 
-st.set_page_config(title="AI Journalist", icon="🗞️", layout="centered")
+st.set_page_config(page_title="AI Journalist", page_icon="🗞️", layout="centered")
 # Create a simple login function
 def login(username, password):
     return username == USERNAME and password == PASSWORD
