@@ -26,7 +26,7 @@ def main_app(api_key):
     
     if st.button("Logout"):
         st.session_state.logged_in = False
-        st.experimental_rerun()
+        st.rerun()
 
     writer = Assistant(
         name="Writer",
