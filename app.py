@@ -6,8 +6,30 @@ from phi.assistant import Assistant
 from phi.tools.newspaper_toolkit import NewspaperToolkit
 from phi.llm.openai import OpenAIChat
 from st_copy_to_clipboard import st_copy_to_clipboard
+import base64
 
 load_dotenv()
+
+st.set_page_config(page_title="AI Journalist", page_icon="🗞️", layout="wide")
+
+def getlogo():
+    with open("logo.png", "rb") as f:
+        data = base64.b64encode(f.read()).decode("utf-8")
+
+    return st.markdown(
+        f"""
+        <div style="position:fixed;
+        display:flex;
+        align-items:center;
+        top:2%;
+        z-index:10;
+        margin-left:auto;">
+            <img src="data:image/webp;base64,{data}" width="150" height="60">
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+getlogo()
 
 # Dummy credentials
 USERNAME = os.getenv("APP_USERNAME")
@@ -16,15 +38,19 @@ PASSWORD = os.getenv("PASSWORD")
 # Fixed API key (replace with your actual API key)
 FIXED_API_KEY = os.getenv("OPENAI_API_KEY")
 
-st.set_page_config(page_title="AI Journalist", page_icon="🗞️", layout="wide")
-
 st.markdown("""
             <style>
+            #root > div:nth-child(1) > div > div > div > div > section > div {padding-top: 0rem;}
+            
+            header[data-testid="stHeader"] {
+                background:transparent;
+            }
             div[class="block-container st-emotion-cache-1jicfl2 ea3mdgi5"] {
-                padding-top:1%;
+                margin-top:5%;
+                padding-top:5%;
             }
             
-            h1[id="d88c5d7a"], div[class="st-emotion-cache-fmhvvr e1nzilvr4"] {
+            h1[id="d88c5d7a"], div[class="st-emotion-cache-fmhvvr e1nzilvr4"] > p {
                 text-align:center;
             }
             
@@ -151,7 +177,7 @@ def main_app(api_key):
                 with st.container():
                     st.image("stock.png", width=350, caption="Your generated article will be displayed here.")
                 
-spacer_left, form, spacer_right = st.columns([1,1,1])
+spacer_left, form, spacer_right = st.columns([1,1,1], vertical_alignment="bottom")
 
 def main():
     if "logged_in" not in st.session_state:
@@ -164,11 +190,11 @@ def main():
             with st.container(border=True):
                 st.title("Login")
 
-        # Create login form
+                # Create login form
                 username = st.text_input("Username")
                 password = st.text_input("Password", type="password")
 
-                if st.button("Login"):
+                if st.button("Login", use_container_width=True):
                     if login(username, password):
                         st.session_state.logged_in = True
                         st.success("Login successful!")
