@@ -2,6 +2,9 @@
 showSidebarNavigation = true
 showErrorDetails = true
 
+[server]
+port = 8501
+
 [theme]
 base = "dark"
 
