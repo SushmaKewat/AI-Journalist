@@ -8,7 +8,7 @@ from phi.tools.newspaper4k import Newspaper4k
 #from phi.tools.duckduckgo import DuckDuckGo
 from phi.llm.openai import OpenAIChat
 from st_copy_to_clipboard import st_copy_to_clipboard
-import base64
+#import base64
 
 load_dotenv()
 
@@ -52,7 +52,16 @@ editing_principles = [
     " The facts (evidence) should be as complete as possible in the space allowed. Avoid repeating arguments in the body, even if using different language.",
     "Finish with a conclusion that restates the premise."
 ]
-def main_app(api_key):
+def main_app(api_key: str) -> None:
+    """
+    Main app function that generates an article using the AI Journalist.
+
+    Args:
+        api_key (str): The API key to use for accessing the OpenAI API.
+
+    Returns:
+        None
+    """
     with st.container():
         st.title("AI Journalist🗞️")
         st.caption("Generate high-quality articles with AI Journalist by researching, writing, and editing articles using GPT-4o.")
@@ -69,7 +78,6 @@ def main_app(api_key):
             f"""
         You are a senior writer with a 20+ years of experience at the New York Times.
         Given a topic and a list of URLs,your goal is to write a high-quality NYT-worthy article on the topic using the information from the provided links.
-        If no links are provided use your knowledge to curate the article.
         """
         ),
         instructions=[
@@ -82,7 +90,7 @@ def main_app(api_key):
             "Never make up facts or plagiarize. Always provide proper attribution.",
             "At the end of the article, Create a sources list of each result you cited, with the article name, author, and link."
         ],
-        tools=[Newspaper4k()],
+        tools=[Newspaper4k(include_summary=True)],
         show_tool_calls=True,
         debug_mode=True,
         prevent_hallucinations=True,
@@ -113,17 +121,17 @@ def main_app(api_key):
     with col1:
         with st.container(border=True):
             st.header("Input & Configuration")
-            query = st.text_input("What do you want the AI journalist to write an article on?", placeholder="E.g: Emergence of AI and LLMs.")
+            query: str = st.text_input("What do you want the AI journalist to write an article on?", placeholder="E.g: Emergence of AI and LLMs.")
             
-            word_limit = st.slider("How long should be your article?", min_value=250, max_value=1500, step=50, key="word_limit")
+            word_limit: int = st.slider("How long should be your article?", min_value=250, max_value=1500, step=50, key="word_limit")
 
             use_links = st.radio("Do you want to provide reference links?", ("No", "Yes"))
 
-            links = []
+            links: List[str] = []
             if use_links == "Yes":
-                    num_links = st.number_input("How many links do you want to provide?",placeholder="Enter the number of links that you want to use", min_value=1, max_value=5, step=1, key="number_of_links", help="These links will be used to curate your news article.")
+                    num_links: int = st.number_input("How many links do you want to provide?",placeholder="Enter the number of links that you want to use", min_value=1, max_value=5, step=1, key="number_of_links", help="These links will be used to curate your news article.")
                     for i in range(num_links):
-                        link = st.text_input(f"Enter reference link {i+1}", key=f"link_{i+1}")
+                        link: str = st.text_input(f"Enter reference link {i+1}", key=f"link_{i+1}")
                         links.append(link)
            
             if use_links == "No" or (use_links == "Yes" and all(links)):
@@ -136,6 +144,10 @@ def main_app(api_key):
 
                         # Get the response from the assistant
                                 response = editor.run(writer_instructions, stream=False)
+                                print("WRITER METRICS: \n")
+                                print(writer.llm.metrics)
+                                print("EDITOR METRICS: \n")
+                                print(editor.llm.metrics)
                         else:
                             st.error("Please provide a topic to write an article on.")
             

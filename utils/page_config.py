@@ -11,6 +11,7 @@ def getlogo():
         display:flex;
         align-items:center;
         top:2%;
+        background-color: rgb(14, 17, 23);
         z-index:10;
         margin-left:auto;">
             <img src="data:image/webp;base64,{data}" width="150" height="60">
