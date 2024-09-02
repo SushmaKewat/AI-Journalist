@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import datetime
 from dotenv import load_dotenv
 from textwrap import dedent
 from phi.assistant import Assistant
@@ -67,6 +68,8 @@ def main_app(api_key: str) -> None:
         st.caption("Generate high-quality articles with AI Journalist by researching, writing, and editing articles using GPT-4o.")
     
     if st.button("Logout"):
+        with open("click_log.txt", "a") as f:
+            f.write(f"{datetime.datetime.now()}: {st.session_state.counter}\n")
         st.session_state.logged_in = False
         st.rerun()
 
@@ -133,9 +136,12 @@ def main_app(api_key: str) -> None:
                     for i in range(num_links):
                         link: str = st.text_input(f"Enter reference link {i+1}", key=f"link_{i+1}")
                         links.append(link)
-           
+                        
+            # Create a counter to count the number of clicks on 'Generate Article'
+
             if use_links == "No" or (use_links == "Yes" and all(links)):
                     if st.button("Generate Article"):
+                        st.session_state.counter += 1
                         if query:
                             with st.spinner("Good things take time, and we're making sure it's perfect for you!"):
                         # Prepare the content for the writer
@@ -167,6 +173,8 @@ def main():
         st.session_state.logged_in = False
 
     if st.session_state.logged_in:
+        if "counter" not in st.session_state:
+            st.session_state.counter = 0
         main_app(FIXED_API_KEY)
     else:
         with form:
@@ -184,6 +192,7 @@ def main():
                         st.rerun()
                     else:
                         st.error("Invalid username or password")
+    
     
 if __name__ == "__main__":
     main()
