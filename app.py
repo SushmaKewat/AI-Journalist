@@ -11,6 +11,8 @@ from st_copy_to_clipboard import st_copy_to_clipboard
 import base64
 
 from utils.assistants import Publisher, Planner, Writer, Editor
+from utils.ui.agent_config_layout import get_config
+from utils.ui.output_drafts import getOutput_drafts
 
 load_dotenv()
 
@@ -33,27 +35,6 @@ FIXED_API_KEY = os.getenv("OPENAI_API_KEY")
 def login(username, password):
     return username == USERNAME and password == PASSWORD
 
-# article_guidelines = [
-#     "Inverted Pyramid: This is how you should organize your story. That means the most fundamental, important information (the “base” of the pyramid) goes up at the top, and information that is less crucial goes further down in the story.",
-#     "Lead: The start of a news story should present the most compelling information.",
-#     "Fact (Not Opinion) and Attribution: State the actual facts, figures, dates and numbers and always provide proper attribution.",
-#     "Identification: A person’s full first name or both initials should be used on first reference—not just a single initial. It shouldn’t be assumed that every reader knows who the person is; he or she should be identified in a way that’s relevant to the article.",
-#     "Short Paragraphs: In newswriting, paragraphs are kept short for punchiness and appearance.",
-#     "Headlines: Headlines should be short and preferably snappy. They should come out of information in the body of the text and not present new information."
-#     "Conclusion: Always end the article with a proper conclusion heading restating the premise."
-# ]
-
-# editing_principles = [
-#     "Accuracy: Checking and crosschecking names, figures and verifying facts are of utmost importance.",
-#     "Attribution: Always attribute the news to the source so that readers can judge its credibility.",
-#     "Brevity:  It is telling a story, as it should be, without beating around the bush.",
-#     "Readability: The average length of a sentence should not exceed 18 words, which is standard. The best way is to write news stories using simple words, short and simple sentences.",
-#     "Explanatory or Analysis—still opinion, but mostly casts new light on ongoing issue.",
-#     "The editorial opens with power and closes with purpose. Begin with a premise or strongly worded opinion then wrap up with a conclusion that restates the premise. ",
-#     "In the body, provide facts, information and statistics to support your premise. ",
-#     " The facts (evidence) should be as complete as possible in the space allowed. Avoid repeating arguments in the body, even if using different language.",
-#     "Finish with a conclusion that restates the premise."
-# ]
 def main_app(api_key):
     with st.container():
         st.title("AI Journalist🗞️")
@@ -63,105 +44,95 @@ def main_app(api_key):
         st.session_state.logged_in = False
         st.rerun()
 
-    # writer = Assistant(
-    #     name="Writer",
-    #     role="Retrieve text from URLs and write high-quality article",
-    #     llm=OpenAIChat(model="gpt-4o", api_key=api_key, temperature=0),
-    #     description=dedent(
-    #         f"""
-    #     You are a senior writer with a 20+ years of experience at the New York Times.
-    #     Given a topic and a list of URLs,your goal is to write a high-quality NYT-worthy article on the topic using the information from the provided links.
-    #     If no links are provided use your knowledge to curate the article.
-    #     """
-    #     ),
-    #     instructions=[
-    #         "Write a high-quality NYT-worthy article on the given topic within the word limit. Do not exceed the given word limit.",
-    #         "People involved and mentioned in the text, places, dates, numbers, amounts, quotes, etc, all these things should be retained and must be mentioned in the final article."
-    #         f"Curate the article based on the guidelines in the {article_guidelines}."
-    #         "Write in proper headings/sections and subheadings/subsections.",
-    #         "Ensure you provide a nuanced and balanced opinion, quoting facts where possible.",
-    #         "Focus on clarity, coherence, and overall quality.",
-    #         "Never make up facts or plagiarize. Always provide proper attribution.",
-    #         "At the end of the article, Create a sources list of each result you cited, with the article name, author, and link."
-    #     ],
-    #     tools=[Newspaper4k()],
-    #     show_tool_calls=True,
-    #     debug_mode=True,
-    #     prevent_hallucinations=True,
-    # )
-
-    # editor = Assistant(
-    #     name="Editor",
-    #     team=[writer],
-    #     llm=OpenAIChat(model="gpt-4o", api_key=api_key, temperature=0),
-    #     role="Get the draft of the article from writer and edit it as per the given instructions.",
-    #     description="You are a senior NYT editor. Given a topic, your goal is to write a NYT-worthy article.",
-    #     instructions=[
-    #         "Given a topic, URLs and word limit, pass the description of the topic and URLs to the writer to get a draft of the article.",
-    #         #f"Format the article based on the guidelines in the {editing_principles}."
-    #         "Edit, proofread, and refine the article to ensure it meets the high standards of the New York Times.",
-    #         "The article should be extremely articulate and well-written.",
-    #         "Focus on clarity, coherence, and overall quality.",
-    #         "Ensure the article is engaging and informative."
-    #     ],
-    #     add_datetime_to_instructions=True,
-    #     markdown=True,
-    #     debug_mode=True
-    # )
-    
+    # Create Assistants
     planner = Planner()
-    planner.create_assistant()
+    planner = planner.create_assistant()
     
     writer = Writer()
-    writer.create_assistant()
+    writer = writer.create_assistant()
     
     editor = Editor()
-    editor.create_assistant()
+    editor = editor.create_assistant()
     
     publisher = Publisher()
-    publisher.create_assistant()
-    publisher.team = [planner, writer, editor]
+    publisher = publisher.create_assistant()
+    #publisher.team = [planner, writer, editor]
     
     response = ""
-    # Input field for the report query
-    col1, col2 = st.columns(2)
-    with col1:
-        with st.container(border=True):
-            st.header("Input & Configuration")
-            query = st.text_input("What do you want the AI journalist to write an article on?", placeholder="E.g: Emergence of AI and LLMs.")
+    planner_response = ""
+    writer_response = ""
+    editor_response = ""
+   
+    tab1, tab2, tab3 = st.tabs(["\u2001Article\u2001\u2001", "\u2001\u2001Agent Config\u2001", "\u2001\u2001Agent Drafts\u2001"])
+    
+    with tab1:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            with st.container(border=True):
+                st.header("Input & Configuration")
+                
+                # Get user input
+                query = st.text_input("What do you want the AI journalist to write an article on?", placeholder="E.g: Emergence of AI and LLMs.")
+                
+                # Get user preferences
+                word_limit = st.slider("How long should be your article?", min_value=250, max_value=1500, step=50, key="word_limit")
+
+                use_links = st.radio("Do you want to provide reference links?", ("No", "Yes"))
+
+                links = []
+                if use_links == "Yes":
+                        num_links = st.number_input("How many links do you want to provide?", placeholder="Enter the number of links that you want to use", min_value=1, max_value=5, step=1, key="number_of_links", help="These links will be used to curate your news article.")
+                        for i in range(num_links):
+                            link = st.text_input(f"Link: {i+1}", key=f"link_{i+1}")
+                            links.append(link)
             
-            word_limit = st.slider("How long should be your article?", min_value=250, max_value=1500, step=50, key="word_limit")
-
-            use_links = st.radio("Do you want to provide reference links?", ("No", "Yes"))
-
-            links = []
-            if use_links == "Yes":
-                    num_links = st.number_input("How many links do you want to provide?",placeholder="Enter the number of links that you want to use", min_value=1, max_value=5, step=1, key="number_of_links", help="These links will be used to curate your news article.")
-                    for i in range(num_links):
-                        link = st.text_input(f"Enter reference link {i+1}", key=f"link_{i+1}")
-                        links.append(link)
-           
-            if use_links == "No" or (use_links == "Yes" and all(links)):
+                if use_links == "No" or (use_links == "Yes" and all(links)):
                     if st.button("Generate Article"):
                         if query:
                             with st.spinner("Good things take time, and we're making sure it's perfect for you!"):
-                        # Prepare the content for the writer
+                                
+                                # Prepare the content for the writer
                                 links_text = "\n".join(links) if links else "No reference links provided."
-                                writer_instructions = f"Topic: {query}\nReference Links:\n{links_text}\nWord Limit:{word_limit}"
+                                
+                                planner_response = planner.run(f"Topic: {query}\nReference Links:\n{links_text}\nWord Limit:{word_limit}", stream=False)
+                                
+                                writer_response = writer.run(f"Topic: {query}\nWord Limit:{word_limit}\nPlanner outline and text:{planner_response}", stream=False)
+                                
+                                editor_response = editor.run(f"Topic: {query}\nWord Limit:{word_limit}\nWriter's article draft:{writer_response}", stream=False)
 
-                        # Get the response from the assistant
-                                response = publisher.run_assistant(writer_instructions)
+                                # Get the response from the assistant
+                                response = publisher.run(editor_response, stream=False)
+                                # response = editor_response
+                                print("\nPLANNER METRICS: \n", planner.llm.metrics)
+                                print("\nWRITER METRICS: \n", writer.llm.metrics)
+                                print("\nEDITOR METRICS: \n", editor.llm.metrics)
+                                print("\nPUBLISHER METRICS: \n", publisher.llm.metrics,"\n\n")
+                                # plan = Planner()
+                                # print("PLANNER INSTRUCTIONS: ", plan.instructions)
+                                # write= Writer()
+                                # print("\nWRITER INSTRUCTIONS: ", write.instructions)
+                                # edit = Editor()
+                                # print("\nEDITOR INSTRUCTIONS: ", edit.instructions)
+                                # pub = Publisher()
+                                # print("\nPUBLISHER INSTRUCTIONS: ", pub.instructions)
                         else:
                             st.error("Please provide a topic to write an article on.")
-            
-    with col2:
-        with st.container(border=True):
-            if not response == "":
-                st.markdown(response)
-                st_copy_to_clipboard(response)
-            else:
-                with st.container():
-                    st.image("stock.png", width=350, caption="Your generated article will be displayed here.")
+                
+        with col2:
+            with st.container(border=True):
+                if not response == "":
+                    st.markdown(response)
+                    st_copy_to_clipboard(response)
+                else:
+                    with st.container():
+                        st.image("stock.png", width=350, caption="Your generated article will be displayed here.")
+                        
+    with tab2:
+        get_config()
+        
+    with tab3:
+        getOutput_drafts(planner_response, writer_response, editor_response)
                 
 spacer_left, form, spacer_right = st.columns([1,1,1], vertical_alignment="bottom")
 
